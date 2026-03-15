@@ -315,7 +315,79 @@ w_t = Delta_t * (1 + rho * R_t)
 - lead_time = 20 - 14 = 6 >= 4 ✓
 - Top precursor step (14) < anchor step (20) ✓
 
-## Phase 6 — Eval Loop + Reporting (PENDING)
+## Phase 6 — CAPRA Training Integration (COMPLETE)
+
+### Goal
+Wire CAPRA training objective into OpenVLA-OFT training path while keeping
+baseline path fully intact.
+
+### Files implemented / updated
+
+| File | Status | Notes |
+|---|---|---|
+| `vla-scripts/finetune_capra.py` | REWRITTEN | Self-contained; no broken imports from vla-scripts/finetune.py; inlines all helpers |
+| `tests/capra/test_finetune_capra.py` | REWRITTEN | Full coverage: config, KL loss, pi_theta, baseline/capra/warmup/active branches, reader |
+| `scripts/capra/train_capra.sh` | UPDATED | Added `--capra_enabled True`, `--rho`, `--beta`, `--capra_warmup_steps` flags |
+| `scripts/capra/smoke_capra.sh` | UPDATED | Verifies all 3 branches: a) baseline, b) CAPRA-active, c) anchor-only (warmup) |
+
+### Key fix
+`finetune_capra.py` previously imported from `vla_scripts.finetune` which
+is invalid (hyphened `vla-scripts/` directory is not a Python package).
+The file is now self-contained with all helpers inlined.
+
+### Training formula implemented
+```
+w_t = Delta_t * (1 + rho * R_t)         [from precursor.py]
+L   = L_anchor + lambda * sum_t w_t * KL(q_hat_t || pi_theta(.|h_t,l))
+```
+
+Candidate-set approximation for continuous actions:
+```
+pi_theta(a_i) ∝ exp(-gamma * ||a_i - a_hat||_1)   normalised over K candidates
+gamma=0 => uniform prior
+```
+
+### Log fields printed during training
+
+| Field | W&B key | Description |
+|---|---|---|
+| `anchor_loss` | `VLA Train/Anchor Loss` | L1 regression loss (always on) |
+| `capra_loss` | `VLA Train/Capra Loss` | KL term before lambda scaling |
+| `activation_ratio` | `CAPRA/activation_ratio` | Fraction of batch records with non-zero q_hat |
+| `mean_w_t` | `CAPRA/mean_w_t` | Mean w_t = Delta_t*(1+rho*R_t) over activated steps |
+| `mean_delta_t` | `CAPRA/mean_delta_t` | Mean local avoidable risk Delta_t |
+| `loss_value` | `VLA Train/Loss` | Total loss (anchor + lambda*capra) |
+| `curr_action_l1_loss` | `VLA Train/Curr Action L1 Loss` | L1 on current-step action |
+
+### Training commands
+
+```bash
+# Baseline (anchor only):
+torchrun --standalone --nnodes 1 --nproc-per-node 1 \
+    vla-scripts/finetune_capra.py \
+    --vla_path tmp/models/openvla-oft-libero \
+    --dataset_name libero_spatial \
+    --data_root_dir tmp/datasets/rlds
+
+# CAPRA mode:
+bash scripts/capra/train_capra.sh
+
+# Smoke test (no GPU needed):
+bash scripts/capra/smoke_capra.sh
+```
+
+### Edge cases not yet covered
+
+1. **Diffusion action head**: CAPRA KL term is gated off when `use_diffusion=True`
+   (no analytic density; future work).
+2. **Multi-GPU CAPRA reader**: `CAPRADatasetReader` is single-threaded; each rank
+   reads the full cache independently. For large caches, consider sharding.
+3. **Cache warming**: if mining cache is empty, CAPRA runs anchor-only with a
+   printed warning — no crash.
+4. **Resume + CAPRA step count**: `gradient_step_idx` restarts from 0 on resume;
+   `capra_warmup_steps` counts from resume start, not from original step 0.
+
+## Phase 7 — Eval Loop + Reporting (PENDING)
 
 ### Blockers to resolve first
 
