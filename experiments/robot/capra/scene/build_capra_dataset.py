@@ -1,3 +1,31 @@
+# ===== CAPRA 安全目标分布构建器 (build_capra_dataset.py) =====
+#
+# 作用
+# ----
+# 将 mining_cache.py 产出的原始挖掘记录转换为训练样本，
+# 核心操作是计算"安全目标分布" q_hat_t。
+#
+# q_hat_t 的数学定义
+# ------------------
+#   q_hat_t(a_i) ∝ prior(a_i) * exp(-beta * F_t(a_i))  if a_i in E_t
+#                = 0                                      otherwise
+#
+#   物理含义：在等价集 E_t 中，足迹越小的动作概率越高（类似 softmin）。
+#   beta 越大，分布越集中在最安全的动作上。
+#   prior 目前是均匀分布（1/K）。
+#
+# 数值稳定性
+# ----------
+#   使用 log-sum-exp 技巧避免 exp 下溢/上溢：
+#   log_unnorm -= log_unnorm.max() 后再 exp
+#
+# 输出
+# ----
+#   iter_training_samples()   逐个 yield 训练样本字典（流式，内存友好）
+#   build_full_dataset()      合并所有样本到单个 .npz 文件
+#   record_to_training_sample() 单条记录转换
+#   每个样本包含：embedding, q_hat, weight(w_t), actions, step, episode_id
+
 """Convert mined CAPRA cache records into training samples.
 
 Takes CAPRAEpisodeCache files produced by run_capra_mining.py and

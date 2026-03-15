@@ -1,3 +1,44 @@
+# ===== CAPRA 评估主循环 (run_capra_eval.py) =====
+#
+# 作用
+# ----
+# 对已训练的 VLA 模型（Baseline 或 CAPRA）进行评估，
+# 在正常推理的同时收集 CAPRA 安全指标。
+#
+# 重要设计：测试时不加任何安全约束
+# ----------------------------------
+#   模型的推理行为与 baseline 完全相同。
+#   CAPRA 信号（足迹、等价集、Delta_t）只是被"观测"和记录，
+#   不干预模型的动作选择。
+#
+# 两种评估模式
+# ------------
+#   capra_eval_K=0（默认，obs-only）
+#     不运行反事实 rollout
+#     只收集所选动作的 obs-level 足迹信号
+#     SPIR=EAR=0（正确的空值，不是错误）
+#
+#   capra_eval_K>=2（完整 CF 评估）
+#     在每步评估 K 个候选动作的足迹
+#     需要 env.sim.get_state()/set_state()（MuJoCo snapshot/restore）
+#     产生非零 SPIR/EAR
+#     速度较慢（每步 K 次 rollout）
+#
+# 支持的基准环境
+# --------------
+#   LIBERO（5 个任务套件）  始终可用
+#   SafeLIBERO               --use_safe_libero True（需要 pip install safe-libero）
+#   CAPRA 程序化场景模板      --side_effect_template collateral_clutter 等
+#
+# 输出文件
+# --------
+#   experiments/logs/capra/CAPRA-EVAL-{suite}-{datetime}/
+#     results_aggregate.json   聚合指标（主要参考这个）
+#     results_episodes.json    每 episode 详情
+#     results_episodes.csv     表格格式
+#     summary.md               Markdown 摘要
+#     eval_log.txt             流式日志
+
 """run_capra_eval.py -- CAPRA evaluation entry point.
 
 Mirrors run_libero_eval.py; reuses all its helpers.

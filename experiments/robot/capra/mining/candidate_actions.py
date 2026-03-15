@@ -1,3 +1,27 @@
+# ===== CAPRA 候选动作采样 (candidate_actions.py) =====
+#
+# 作用
+# ----
+# 为每个时间步生成 K 个候选动作块，用于 counterfactual rollout。
+#
+# 采样策略
+# --------
+#   候选 0（index=0）: 确定性前向传播（noise_sigma=0），是模型实际会执行的动作
+#   候选 1..K-1:       在动作输出上叠加高斯噪声 N(0, sigma^2)，产生多样化候选
+#
+# 为什么用噪声注入而不是随机采样？
+# ---------------------------------
+#   OpenVLA-OFT 使用 L1RegressionActionHead，相同输入产生相同输出（确定性）。
+#   直接随机采样与模型策略无关。噪声注入在模型预测附近搜索，
+#   候选动作既有多样性，又都是"合理的"动作。
+#
+# 重要函数
+# --------
+#   sample_k_action_chunks()  主采样函数，返回 (K, chunk_len, action_dim)
+#   build_candidate_set()     包装函数，同时返回均匀先验权重
+#   synthetic_candidates()    无需 VLA 的随机候选，用于测试
+#   uniform_prior_weights(K)  返回均匀分布 [1/K, ..., 1/K]
+
 """Candidate action generation for CAPRA.
 
 The candidate set A_t at timestep t is built by running K stochastic

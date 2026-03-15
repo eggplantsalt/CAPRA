@@ -1,3 +1,30 @@
+# ===== CAPRA 前驱归因 (precursor.py) =====
+#
+# 核心思想
+# --------
+# 很多危险事件不是"最后一步"造成的，而是更早的决策埋下了祸根。
+# 前驱归因找到"替换哪一步最能减少最终危险"，并对那些步骤的损失权重上调。
+#
+# 算法流程
+# --------
+#   输入：危险轨迹窗口 W（以高危步骤 anchor_step 结尾）
+#   对窗口内每步 t'（按原始足迹从高到低排序，预算优先高危步骤）：
+#     - 在 t' 处替换为等价集中最安全的动作
+#     - 执行 H_attr 步后计算下游总足迹
+#     - delta_hazard(t') = max(0, hazard_before - hazard_after)
+#   R_t' = delta_hazard(t') / sum(all deltas)  [归一化到 0-1]
+#
+# 损失权重加成
+# ------------
+#   w_t = Delta_t * (1 + rho * R_t)
+#   rho > 0 让前驱步骤的损失权重高于非前驱步骤
+#
+# 两种实现
+# --------
+#   compute_precursor_chain_from_footprints()  纯 numpy，用于测试和离线分析
+#   compute_precursor_chain()                  基于真实 env rollout（需要 sim.get_state）
+#   precursor_loss_weight()                    计算 w_t = Delta_t * (1 + rho * R_t)
+
 """Precursor attribution: R_t, PrecursorChain, AttributionEditGain.
 
 Algorithm (pseudo-code)

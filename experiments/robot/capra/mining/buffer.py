@@ -1,3 +1,27 @@
+# ===== CAPRA 安全候选缓冲区 (buffer.py) =====
+#
+# 作用
+# ----
+# 安全候选缓冲区（Safety Alternative Buffer，SAB）
+# 存储 (embedding, 安全候选动作) 键值对，
+# 供挖掘流程在后续步骤中检索"历史上见过的安全等价动作"。
+#
+# 重要约束
+# --------
+#   ⚠️ 此模块只能在离线挖掘和数据集构建阶段使用
+#   ⚠️ 绝对不能在推理时（deploy.py、run_libero_eval.py）导入
+#   ⚠️ 测试时代码路径不应包含此模块
+#
+# 键值结构
+# --------
+#   Key  : 冻结的 VLA 视觉-语言 embedding (D,)，可选拼接几何摘要 (K_geo,)
+#   Value: 低足迹的候选动作块 (chunk_len, action_dim) + footprint + progress
+#
+# 使用场景
+# --------
+#   当某步的等价集 E_t 为空时（无法在线采样到安全候选），
+#   可以从历史缓冲区检索相似 embedding 对应的安全动作作为替代候选
+
 """Safety Alternative Buffer (SAB) -- training-time only.
 
 The SAB stores (embedding, action_chunk) pairs that were identified as

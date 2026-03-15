@@ -1,3 +1,29 @@
+# ===== CAPRA 环境适配器 (env_adapter.py) =====
+#
+# 作用
+# ----
+# 对 LIBERO 的 OffScreenRenderEnv 做薄包装，
+# 统一暴露 CAPRA 需要的接口，不修改 LIBERO 代码。
+#
+# 主要功能
+# --------
+#   step/reset/seed/get_observation  代理到底层 LIBERO env（原样透传）
+#   apply_procedural_template()      reset 后调用，注入程序化场景扰动
+#   get_sim_state() / set_sim_state() MuJoCo 快照/还原（CF rollout 用）
+#   get_object_poses()               返回所有可动物体的当前位置
+#
+# 访问 MuJoCo 的路径
+# ------------------
+#   env._env.sim  →  OffScreenRenderEnv 内部的 MjSim
+#   sim.data.qpos, sim.data.body_xpos  →  物体状态
+#   sim.model.body_name2id()  →  按名称找物体编号
+#
+# make_capra_env() 工厂函数
+# --------------------------
+#   从 LIBERO task 对象 + EnvConfig 构建一个 CAPRAEnvAdapter
+#   使用方式：
+#     adapter, task_desc = make_capra_env(task, EnvConfig(task_suite_name='libero_spatial'))
+
 """Unified environment adapter for LIBERO / SafeLIBERO.
 
 Wraps `libero.libero.envs.OffScreenRenderEnv` and exposes a minimal

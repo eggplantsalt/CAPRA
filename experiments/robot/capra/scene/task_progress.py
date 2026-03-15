@@ -1,3 +1,31 @@
+# ===== CAPRA 任务进度估计 (task_progress.py) =====
+#
+# 作用
+# ----
+# 计算 P_t(a)：从状态 s_t 出发执行动作 a（H_s 步）后的任务进度变化量。
+# P_t 是等价集 E_t 过滤的核心依据：只有进度足够接近 P_max 的候选才进入 E_t。
+#
+# 重要设计原则
+# ------------
+#   P_t 与 F_t（足迹）完全解耦：
+#   一个更安全的动作可以和不安全的动作有完全相同的 P_t，
+#   这正是 CAPRA 存在的意义——在等价进度下选更安全的动作。
+#
+# 三种精度的实现
+# --------------
+#   libero_info_progress     精确：从 env.step 返回的 info 字典读取子任务完成数
+#                            需要 info['num_satisfied_predicates'] 字段
+#   libero_obs_stage_progress 近似：从物体位置推断任务阶段
+#   done_flag_progress       最粗糙：任务成功=1.0，否则=0.5
+#                            当前默认使用这个，因为 LIBERO info 不总是暴露子任务数
+#
+# 主入口
+# ------
+#   progress_fn = make_libero_progress_fn()
+#   result = compute_progress_from_rollout(obs_before, info_before, obs_after, info_after,
+#                                          task_description, progress_fn)
+#   print(result.value)  # float in [0, 1]
+
 """Task progress computation: P_t(a).
 
 P_t(a) is the change in progress potential after executing action `a`

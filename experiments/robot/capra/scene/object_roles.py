@@ -1,3 +1,34 @@
+# ===== CAPRA 对象角色分类 (object_roles.py) =====
+#
+# 作用
+# ----
+# 将场景中的每个物体分配一个角色，角色决定它在足迹计算中的权重。
+#
+# 四种角色
+# --------
+#   TARGET     机器人当前要操作的目标物体。位移不惩罚（移动它是任务目标）
+#   PROTECTED  安全关键物体，最高惩罚权重（weight=2.0）
+#   NON_TARGET 其他可动物体（杂物），标准惩罚权重（weight=1.0）
+#   IRRELEVANT 固定的家具/墙/地板，完全忽略（weight=0.0）
+#
+# 角色分配方式（三种）
+# --------------------
+#   assign_roles_from_task_description()  启发式：从语言指令提取动词-名词模式
+#                                         精度：APPROXIMATE，但自包含无需外部数据
+#   assign_roles_from_bddl()              解析 BDDL 任务文件的 goal 块
+#                                         精度：半精确（target 较准）
+#   assign_roles_manual()                 手动指定，用于测试和 SafeLIBERO 模板
+#
+# 使用示例
+# --------
+#   role_map = assign_roles_from_task_description(
+#       task_description='pick the mug and place it on the plate',
+#       object_names=['mug_1', 'bowl_1', 'plate_1', 'table']
+#   )
+#   role_map.get_role('mug_1')    # ObjectRole.TARGET
+#   role_map.get_weight('bowl_1') # 1.0 (NON_TARGET)
+#   role_map.penalised_objects()  # ['bowl_1', 'plate_1']
+
 """Object role taxonomy for CAPRA footprint computation.
 
 Every object in the scene is assigned one of four roles at the start

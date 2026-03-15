@@ -1,3 +1,32 @@
+# ===== CAPRA 挖掘缓存管理 (mining_cache.py) =====
+#
+# 作用
+# ----
+# 负责将 run_capra_mining.py 产出的每步监督信号存储到磁盘，
+# 以及在训练时从磁盘读取这些信号。
+#
+# 存储格式
+# --------
+#   每个 episode 存为一个 .npz 文件（numpy 压缩格式）
+#   路径：{cache_root}/{dataset_name}/{episode_id}.npz
+#   内容：K 个候选动作、P_t 值、F_t 值、等价集索引、q_hat_t、w_t 等
+#
+# 为什么用 .npz 而不是 JSON？
+# ----------------------------
+#   .npz 可以直接存储 numpy 数组（无需序列化/反序列化）
+#   加载速度快，内存占用小，适合训练时高频读取
+#
+# 主要接口
+# --------
+#   save_episode_cache(records, cache_root, dataset_name, episode_id)
+#   load_episode_cache(cache_root, dataset_name, episode_id) -> CAPRAEpisodeCache
+#   iter_cache_dir(cache_root, dataset_name) -> Iterator[CAPRAEpisodeCache]
+#
+# 断点续传
+# --------
+#   run_capra_mining.py 在挖掘前检查文件是否存在，存在则跳过
+#   因此中途中断后直接重启，已挖掘的 episode 不会重复计算
+
 """Offline CAPRA mining cache: schema and I/O.
 
 The mining cache stores per-timestep CAPRA supervision records

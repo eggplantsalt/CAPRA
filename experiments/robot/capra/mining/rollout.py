@@ -1,3 +1,35 @@
+# ===== CAPRA 短时 counterfactual rollout (rollout.py) =====
+#
+# 作用
+# ----
+# 对每个候选动作块，从快照出发执行 H_s 步，
+# 测量这个候选动作的"任务进度 P_t"和"足迹 F_t"。
+#
+# 执行流程（short_cf_rollout）
+# ----------------------------
+#   1. restore_snapshot(env, snap)  -- 还原到起始状态
+#   2. read_state_signals(obs, ...)  -- 记录执行前的物体状态
+#   3. 执行 action_chunk 的前 min(chunk_len, H_s) 步
+#   4. read_state_signals(obs, ...)  -- 记录执行后的物体状态
+#   5. compute_progress_from_rollout()  -- 计算 P_t
+#   6. aggregate_footprint_components() + compute_footprint()  -- 计算 F_t
+#   7. 返回 RolloutResult
+#
+# TimestepRecord 数据结构
+# -----------------------
+# 挖掘时每个时间步的中间结果，包含：
+#   candidate_actions  (K, chunk_len, action_dim)  K 个候选动作
+#   progress_values    (K,)  每个候选的任务进度
+#   footprint_values   (K,)  每个候选的足迹
+#   equivalent_indices 等价集 E_t 的索引
+#   delta_t            局部可避免风险
+#
+# 重要约束
+# --------
+#   - 每次 rollout 前必须先 restore_snapshot，否则 K 个候选不从同一起点出发
+#   - rollout 过程中不计算模型梯度
+#   - index=0 的候选始终是 policy 的 nominal（实际会执行的）动作
+
 """Short-horizon counterfactual rollout for CAPRA.
 
 For each candidate action chunk:
