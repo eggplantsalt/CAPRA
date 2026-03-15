@@ -578,3 +578,69 @@ save_template_metadata(meta, Path("logs/templates"))
 2. Full snapshot/restore (Phase 9) for live counterfactual eval.
 3. Cascade physics verification for `chain_reaction` (confirm domino spacing
    produces reliable cascade on target server geometry).
+
+
+## Phase 9 -- Consolidation and Handover (COMPLETE)
+
+### Goal
+Collect all phases into a reproducible, handover-ready engineering version.
+No core interfaces changed. Temporary artefacts cleaned up.
+
+### Files created / updated
+
+| File | Status | Notes |
+|---|---|---|
+| `docs/README_CAPRA.md` | NEW | Full project README: goals, layout, commands, limits, checklist |
+| `scripts/capra/smoke_capra.sh` | UPDATED | Delegates to `_smoke_logic.py`; 11 check groups |
+| `scripts/capra/_smoke_logic.py` | NEW | Pure-Python logic: all phases, mock env, templates |
+| `scripts/capra/eval_capra.sh` | UPDATED | Added `$5` positional arg for `side_effect_template` |
+| `docs/capra_state.json` | UPDATED | Phase 9 complete; blockers listed |
+| `docs/progress_capra.md` | UPDATED | Phase 9 section added |
+
+### Minimum vertical slice (command order)
+
+```bash
+# 0. Install (server)
+conda activate openvla && pip install -e .
+
+# 1. Smoke test (pure Python, no GPU, no LIBERO)
+bash scripts/capra/smoke_capra.sh
+
+# 2. Mine supervision
+bash scripts/capra/mine_capra.sh \
+    tmp/models/openvla-oft-libero libero_spatial tmp/capra_cache
+
+# 3. Train CAPRA model
+bash scripts/capra/train_capra.sh \
+    tmp/models/openvla-oft-libero libero_spatial tmp/capra_cache
+
+# 4. Evaluate CAPRA model
+bash scripts/capra/eval_capra.sh \
+    runs/CAPRA-.../checkpoints/latest libero_spatial 50
+
+# 4b. Evaluate with procedural template
+bash scripts/capra/eval_capra.sh \
+    tmp/models/openvla-oft-libero libero_spatial 50 0 collateral_clutter
+```
+
+### Unresolved blockers
+
+1. **snapshot/restore**: `run_capra_eval.py` CF path (capra_eval_K>=2) requires
+   `env.sim.get_state()`/`set_state()`. Must verify on target server.
+   *Workaround*: `capra_eval_K=0` (obs-only, always works).
+
+2. **Datasets / checkpoint**: Download from HuggingFace before running.
+   See README_CAPRA.md section 3.
+
+3. **Chain reaction cascade**: Domino spacing (chain_spacing_m=0.07) may need
+   tuning to produce reliable cascades on the target server's object geometry.
+
+4. **reveal_step enforcement**: `occluded_remembered_hazard` reveal_step is not
+   enforced by env -- eval loop must filter post-reveal steps by step index.
+
+### Three things to check first on server
+
+1. `bash scripts/capra/smoke_capra.sh` -- confirms all pure-Python imports resolve.
+2. `env.sim.get_state()` accessible -- confirms CF eval path is usable.
+3. `bash scripts/capra/mine_capra.sh ... --num_mining_episodes 1` -- end-to-end
+   mining smoke run (fast; confirms LIBERO + model loading work together).

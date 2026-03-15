@@ -1,86 +1,65 @@
 {
-  "phase": 8,
-  "phase_name": "Procedural Side-Effect Templates",
+  "phase": 9,
+  "phase_name": "Consolidation and Handover",
   "status": "complete",
   "date_completed": "2026-03-15",
 
-  "files_updated_phase8": [
-    "experiments/robot/capra/procedural_splits.py",
-    "experiments/robot/capra/env_adapter.py",
-    "tests/capra/test_procedural_splits.py",
+  "all_phases_complete": [
+    "Phase 1: Scaffold + CAPRAConfig",
+    "Phase 2: Footprint + ObjectRoles + Signals",
+    "Phase 3: Equivalence + Candidate Actions",
+    "Phase 4: CAPRA Loss + Training Integration",
+    "Phase 5: Precursor Attribution",
+    "Phase 6: Mining Pipeline",
+    "Phase 7: Eval Loop + Reporting",
+    "Phase 8: Procedural Side-Effect Templates",
+    "Phase 9: Consolidation and Handover"
+  ],
+
+  "files_updated_phase9": [
+    "docs/README_CAPRA.md",
+    "scripts/capra/smoke_capra.sh",
+    "scripts/capra/_smoke_logic.py",
+    "scripts/capra/eval_capra.sh",
     "docs/progress_capra.md",
     "docs/capra_state.json"
   ],
 
-  "phase8_templates": {
-    "collateral_clutter": {
-      "initial_conditions": "N non-target objects placed in a semicircle at clutter_proximity_m from target",
-      "side_effect_exposed": "Displacement of non-target objects during reaching/grasping",
-      "footprint_signals": ["protected_object_displacement", "contact_impulse"],
-      "fidelity": "EXACT (free-joint qpos) or APPROX (xpos patch)",
-      "key_config_fields": ["clutter_n_objects", "clutter_proximity_m", "clutter_role"]
-    },
-    "support_critical_neighbor": {
-      "initial_conditions": "stack_height objects stacked vertically at stack_proximity_m from target",
-      "side_effect_exposed": "Topple and support-break when robot contacts stack base",
-      "footprint_signals": ["topple_count", "support_break_count", "protected_object_displacement"],
-      "fidelity": "EXACT or APPROX; block height approximated at 0.045 m",
-      "key_config_fields": ["stack_height", "stack_proximity_m", "stack_weight"]
-    },
-    "chain_reaction": {
-      "initial_conditions": "chain_length objects in a domino line spaced chain_spacing_m apart from target",
-      "side_effect_exposed": "Cascade topple: displacing object[0] hits object[1..N]",
-      "footprint_signals": ["topple_count", "protected_object_displacement"],
-      "fidelity": "EXACT or APPROX; cascade depends on object mass/friction",
-      "key_config_fields": ["chain_length", "chain_spacing_m", "chain_direction_x", "chain_direction_y"]
-    },
-    "occluded_remembered_hazard": {
-      "initial_conditions": "Hazard placed occluder_offset_m outside lateral camera FOV at reset",
-      "side_effect_exposed": "Whether policy avoids hazard after it becomes visible at reveal_step",
-      "footprint_signals": ["protected_object_displacement"],
-      "fidelity": "APPROX -- FOV boundary is nominal 60-deg agentview estimate",
-      "key_config_fields": ["occluder_offset_m", "reveal_step", "use_static_occluder"]
-    }
+  "confirmed_entry_points": {
+    "training_baseline":    "vla-scripts/finetune.py::finetune",
+    "training_capra":       "vla-scripts/finetune_capra.py::finetune_capra",
+    "eval_baseline":        "experiments/robot/libero/run_libero_eval.py::eval_libero",
+    "eval_capra":           "experiments/robot/capra/run_capra_eval.py::run_capra_eval",
+    "mining":               "experiments/robot/capra/run_capra_mining.py::run_mining",
+    "procedural_template":  "experiments/robot/capra/procedural_splits.py::apply_template_to_env"
   },
 
-  "phase8_api": {
-    "main_entry_point": "apply_template_to_env(env, obs, cfg, task_description, task_id, episode_idx)",
-    "returns": "TemplateMetadata (template, config, fidelity, perturbed objects, hazard objects, signals)",
-    "env_hook": "CAPRAEnvAdapter.apply_procedural_template() -- call after reset, before first step",
-    "metadata_export": "save_template_metadata(meta, output_dir) -> JSON file",
-    "role_map_integration": "build_role_map_for_template(meta, object_names, task_description)"
+  "shell_scripts": {
+    "mine":   "bash scripts/capra/mine_capra.sh [CKPT] [DATASET] [CACHE]",
+    "train":  "bash scripts/capra/train_capra.sh [CKPT] [DATASET] [CACHE]",
+    "eval":   "bash scripts/capra/eval_capra.sh [CKPT] [SUITE] [TRIALS] [CF_K] [TEMPLATE]",
+    "smoke":  "bash scripts/capra/smoke_capra.sh"
   },
 
-  "phase8_limits": [
-    "Object selection is heuristic (all movable non-target bodies); no geometry-aware path check",
-    "Chain reaction cascade not guaranteed; spacing must be tuned to scene geometry",
-    "Support stack stability not verified; tall stacks may self-topple on sim.forward()",
-    "Occluded hazard FOV boundary is approximate (nominal 60-deg); exact FOV varies by scene",
-    "reveal_step for occluded hazard is not enforced by env; eval loop must filter post-reveal steps",
-    "All templates degrade gracefully to fidelity=none when sim is inaccessible"
+  "output_locations": {
+    "mining_cache":    "tmp/capra_cache/{dataset}/",
+    "training_runs":   "runs/CAPRA-{dataset}-{datetime}/",
+    "eval_results":    "experiments/logs/capra/CAPRA-EVAL-{suite}-{datetime}/",
+    "template_meta":   "experiments/logs/capra/{run_id}/templates/"
+  },
+
+  "blockers": [
+    "snapshot/restore: requires server validation of OffScreenRenderEnv sim.get_state()/set_state()",
+    "RLDS datasets: must download from HuggingFace before training",
+    "Base checkpoint: must download openvla-oft-libero before mining or eval",
+    "SafeLIBERO: pip install safe-libero; set --use_safe_libero False to skip"
   ],
 
-  "phase8_test_results": {
-    "test_file": "tests/capra/test_procedural_splits.py",
-    "n_tests": 33,
-    "passed": 33,
-    "failed": 0
-  },
+  "three_things_to_check_first": [
+    "1. Run smoke_capra.sh on server to confirm all pure-Python imports resolve",
+    "2. Confirm OffScreenRenderEnv exposes env.sim.get_state()/set_state() (needed for CF eval)",
+    "3. Run mine_capra.sh with 1 episode to confirm mining pipeline end-to-end"
+  ],
 
-  "confirmed_entry_points": {
-    "training_baseline":   "vla-scripts/finetune.py::finetune",
-    "training_capra":      "vla-scripts/finetune_capra.py::finetune_capra",
-    "eval_baseline":       "experiments/robot/libero/run_libero_eval.py::eval_libero",
-    "eval_capra":          "experiments/robot/capra/run_capra_eval.py::run_capra_eval",
-    "mining":              "experiments/robot/capra/run_capra_mining.py::run_mining",
-    "procedural_template": "experiments/robot/capra/procedural_splits.py::apply_template_to_env"
-  },
-
-  "next_phase": 9,
-  "next_phase_name": "Live Counterfactual Rollout (full snapshot/restore wiring)",
-  "next_phase_blockers": [
-    "Confirm LIBERO OffScreenRenderEnv sim.get_state()/set_state() on target server",
-    "Wire reveal_step-aware post-processing for occluded_remembered_hazard in eval loop",
-    "Add task_progress integration to CF path (replace done-flag proxy)"
-  ]
+  "critical_config_note": "shuffle_buffer_size MUST stay at 2000 -- higher values exhaust container memory via TF RLDS loader"
 }
