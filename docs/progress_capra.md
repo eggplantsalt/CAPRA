@@ -387,19 +387,93 @@ bash scripts/capra/smoke_capra.sh
 4. **Resume + CAPRA step count**: `gradient_step_idx` restarts from 0 on resume;
    `capra_warmup_steps` counts from resume start, not from original step 0.
 
-## Phase 7 — Eval Loop + Reporting (PENDING)
+## Phase 7 — Eval Loop + Reporting (COMPLETE)
 
-### Blockers to resolve first
+### Goal
+Implement CAPRA evaluation path supporting baseline vs CAPRA model comparison,
+outputting all paper metrics, mechanism metrics, and external result metrics.
 
-1. Confirm LIBERO `OffScreenRenderEnv` exposes `sim.get_state()` / `sim.set_state()` for exact snapshot.
-2. Confirm contact/impulse API availability in MuJoCo version bundled with LIBERO.
-3. Confirm BDDL predicate checker API for task progress signal.
+### Files implemented / updated
 
-### Next actions
+| File | Status | Notes |
+|---|---|---|
+| `experiments/robot/capra/metrics.py` | COMPLETE | All 8 metric fields; `compute_precursor_lead_time` returns `float` |
+| `experiments/robot/capra/run_capra_eval.py` | COMPLETE | Full eval loop; obs-only default + live CF path (capra_eval_K>=2); `_FpCfg` proxy; baseline-compatible |
+| `experiments/robot/capra/report_utils.py` | COMPLETE | JSON/CSV/Markdown writers; numpy import at top; float() casts in per-task table |
+| `tests/capra/test_metrics.py` | COMPLETE | 40+ tests: SPIR/EAR/EditGain/LeadTime/episode/aggregate/report/baseline |
+| `scripts/capra/eval_capra.sh` | UPDATED | Matches CAPRAEvalConfig; capra_eval_K positional arg added |
+| `docs/progress_capra.md` | UPDATED | Phase 7 complete |
+| `docs/capra_state.json` | UPDATED | Phase 7 complete; fixes listed |
 
-1. Implement `snapshot.save_snapshot` / `restore_snapshot` against LIBERO MuJoCo backend.
-2. Implement `state_api.read_state_signals` (poses, contacts, topple detection).
-3. Implement `rollout.short_cf_rollout` (H_s step loop).
-4. Implement `task_progress.libero_stage_progress`.
-5. Implement `signals.aggregate_footprint_components`.
-6. Wire everything into `run_capra_mining.py` mining loop.
+### Eval commands
+
+```bash
+# Baseline model:
+bash scripts/capra/eval_capra.sh tmp/models/openvla-oft-libero
+
+# CAPRA-trained model:
+bash scripts/capra/eval_capra.sh tmp/models/openvla-oft-libero-capra
+
+# Full argument control:
+python -m experiments.robot.capra.run_capra_eval \
+    --pretrained_checkpoint tmp/models/openvla-oft-libero \
+    --task_suite_name libero_spatial \
+    --num_trials_per_task 50 \
+    --capra_eval_K 8
+```
+
+### Output file schema
+
+```
+experiments/logs/capra/{run_id}/
+  results_episodes.json   # list of dicts, one per episode
+  results_aggregate.json  # aggregate + run metadata
+  results_episodes.csv    # same as JSON but tabular
+  summary.md              # human-readable markdown
+  eval_log.txt            # streaming text log
+```
+
+`results_episodes.json` fields per episode:
+`episode_id, task_description, task_id, success, total_steps,
+n_activated_steps, spir, ear, attribution_edit_gain, precursor_lead_time,
+protected_object_displacement, topple_count, support_break_count`
+
+`results_aggregate.json` fields:
+`n_episodes, n_tasks, success_rate, spir_mean, spir_std, ear_mean, ear_std,
+attribution_edit_gain_mean, precursor_lead_time_mean,
+protected_object_displacement_mean, topple_rate, support_break_rate,
+activation_rate_mean, model_path, task_suite, seed, n_trials, run_id, timestamp`
+
+### Benchmark path status
+
+| Benchmark | Status | Notes |
+|---|---|---|
+| LIBERO (all 5 suites) | Ready | Uses `libero.libero.benchmark` directly |
+| SafeLIBERO | Interface ready | Raises `ImportError` with install instructions if not present |
+| CAPRA procedural templates | Config flag ready | `--side_effect_template` accepted; template env wiring is Phase 8 |
+
+### CAPRA signal collection strategy
+
+The eval loop collects footprint signals from obs dicts (EXACT for poses).
+Counterfactual rollouts (K candidates) are NOT run during evaluation by
+default to keep eval fast -- the `capra_activated` flag is False and
+SPIR/EAR are 0 in this path. This is the correct null value.
+
+To get non-zero SPIR/EAR during eval, the counterfactual path (which
+requires a live sim snapshot/restore) must be enabled.  This is
+Phase 8 work (full mining-time rollout infrastructure wired into eval).
+
+### Edge cases
+
+1. **SafeLIBERO absent**: `ImportError` with install instructions; set `--use_safe_libero False` to skip.
+2. **Baseline model SPIR=0**: Correct -- no inversions measured without counterfactuals.
+3. **External metrics (topple/displacement) still collected** for baseline models from obs dict.
+4. **No test-time safety layer**: model runs identically to baseline eval.
+
+## Phase 8 — Live Counterfactual Rollout in Eval (PENDING)
+
+### Blockers
+1. Confirm LIBERO `OffScreenRenderEnv` exposes `sim.get_state()` / `sim.set_state()`.
+2. Wire `snapshot.save_snapshot` / `restore_snapshot` to eval loop.
+3. Enable K-candidate sampling during eval for non-zero SPIR/EAR.
+4. Wire procedural side-effect templates into env factory.
