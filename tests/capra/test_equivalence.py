@@ -11,8 +11,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from experiments.robot.capra.capra_config import CAPRAConfig
-from experiments.robot.capra.equivalence import (
+from experiments.robot.capra.core.capra_config import CAPRAConfig
+from experiments.robot.capra.core.equivalence import (
     build_task_equivalent_set,
     local_safest_action_index,
     compute_local_avoidable_risk,

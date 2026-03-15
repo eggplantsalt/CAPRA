@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 import torch
 
-from experiments.robot.capra.capra_loss import (
+from experiments.robot.capra.core.capra_loss import (
     CAPRADatasetReader,
     compute_capra_kl_loss,
     compute_pi_theta,
@@ -310,7 +310,7 @@ class TestReaderEmpty:
 
 class TestReaderNonEmpty:
     def _build_cache(self, cache_root: Path, n: int = 3):
-        from experiments.robot.capra.mining_cache import (
+        from experiments.robot.capra.mining.mining_cache import (
             CAPRAEpisodeCache, CAPRATimestepRecord, save_episode_cache,
         )
         cache = CAPRAEpisodeCache(

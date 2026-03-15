@@ -4,8 +4,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from experiments.robot.capra.capra_config import CAPRAConfig
-from experiments.robot.capra.candidate_actions import (
+from experiments.robot.capra.core.capra_config import CAPRAConfig
+from experiments.robot.capra.mining.candidate_actions import (
     uniform_prior_weights,
     synthetic_candidates,
 )

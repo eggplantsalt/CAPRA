@@ -4,7 +4,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from experiments.robot.capra.metrics import (
+from experiments.robot.capra.eval.metrics import (
     AggregateMetrics,
     EpisodeMetrics,
     TimestepEvalRecord,
@@ -15,7 +15,7 @@ from experiments.robot.capra.metrics import (
     compute_attribution_edit_gain,
     compute_precursor_lead_time,
 )
-from experiments.robot.capra.report_utils import (
+from experiments.robot.capra.eval.report_utils import (
     print_aggregate_report,
     save_all_reports,
     save_episode_csv,

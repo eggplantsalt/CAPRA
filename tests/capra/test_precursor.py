@@ -15,15 +15,15 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from experiments.robot.capra.capra_config import CAPRAConfig
-from experiments.robot.capra.precursor import (
+from experiments.robot.capra.core.capra_config import CAPRAConfig
+from experiments.robot.capra.scene.precursor import (
     PrecursorEntry,
     PrecursorChain,
     precursor_loss_weight,
     measure_downstream_hazard,
     compute_precursor_chain_from_footprints,
 )
-from experiments.robot.capra.metrics import (
+from experiments.robot.capra.eval.metrics import (
     compute_attribution_edit_gain,
     compute_precursor_lead_time,
 )

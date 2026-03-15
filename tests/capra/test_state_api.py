@@ -14,7 +14,7 @@ import math
 import numpy as np
 import pytest
 
-from experiments.robot.capra.signals import (
+from experiments.robot.capra.core.signals import (
     ObjectPose,
     StateSignals,
     read_object_poses,
@@ -24,7 +24,7 @@ from experiments.robot.capra.signals import (
     read_state_signals,
     DEFAULT_WORKSPACE_BOUNDS,
 )
-from experiments.robot.capra.state_api import StateSignals as StateSignalsAlias
+from experiments.robot.capra.core.state_api import StateSignals as StateSignalsAlias
 
 
 # ---------------------------------------------------------------------------

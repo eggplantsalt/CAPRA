@@ -1,5 +1,8 @@
-"""CAPRA: Confidence-Aware Policy Rollout Adaptation.
+"""CAPRA 核心算法模块
 
-All CAPRA-specific logic lives in this package. Baseline files under
-`experiments/robot/libero/` and `vla-scripts/finetune.py` are not modified.
+包含以下子包：
+  core/   -- 配置、损失函数、等价集、足迹、状态信号
+  scene/  -- 对象角色、任务进度、前驱归因、数据集构建
+  mining/ -- 挖掘流程、缓存、候选动作、快照、环境适配器
+  eval/   -- 评估循环、指标、报告生成、程序化场景模板
 """

@@ -12,18 +12,18 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from experiments.robot.capra.capra_config import CAPRAConfig
-from experiments.robot.capra.object_roles import assign_roles_manual
-from experiments.robot.capra.signals import (
+from experiments.robot.capra.core.capra_config import CAPRAConfig
+from experiments.robot.capra.scene.object_roles import assign_roles_manual
+from experiments.robot.capra.core.signals import (
     ObjectPose, ContactEvent, SupportRelation, StateSignals,
     read_topple_flags, check_workspace_violations,
 )
-from experiments.robot.capra.footprint import (
+from experiments.robot.capra.core.footprint import (
     FootprintComponents, aggregate_footprint_components, compute_footprint,
     compute_non_target_displacement, compute_contact_impulse,
     compute_irreversible_events,
 )
-from experiments.robot.capra.task_progress import (
+from experiments.robot.capra.scene.task_progress import (
     ProgressResult, libero_info_progress, pick_height_proxy,
     compute_progress_from_rollout,
 )

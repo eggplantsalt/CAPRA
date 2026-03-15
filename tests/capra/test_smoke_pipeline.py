@@ -15,27 +15,27 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from experiments.robot.capra.capra_config import CAPRAConfig
-from experiments.robot.capra.candidate_actions import synthetic_candidates, uniform_prior_weights
-from experiments.robot.capra.equivalence import (
+from experiments.robot.capra.core.capra_config import CAPRAConfig
+from experiments.robot.capra.mining.candidate_actions import synthetic_candidates, uniform_prior_weights
+from experiments.robot.capra.core.equivalence import (
     build_task_equivalent_set,
     local_safest_action_index,
     compute_local_avoidable_risk,
 )
-from experiments.robot.capra.object_roles import assign_roles_manual
-from experiments.robot.capra.signals import ObjectPose, StateSignals
-from experiments.robot.capra.footprint import aggregate_footprint_components, compute_footprint
-from experiments.robot.capra.rollout import TimestepRecord
-from experiments.robot.capra.build_capra_dataset import (
+from experiments.robot.capra.scene.object_roles import assign_roles_manual
+from experiments.robot.capra.core.signals import ObjectPose, StateSignals
+from experiments.robot.capra.core.footprint import aggregate_footprint_components, compute_footprint
+from experiments.robot.capra.mining.rollout import TimestepRecord
+from experiments.robot.capra.scene.build_capra_dataset import (
     build_safety_target_distribution,
     build_full_dataset,
     load_full_dataset,
 )
-from experiments.robot.capra.mining_cache import (
+from experiments.robot.capra.mining.mining_cache import (
     CAPRAEpisodeCache, CAPRATimestepRecord,
     save_episode_cache, load_episode_cache, list_cached_episode_ids,
 )
-from experiments.robot.capra.buffer import SafetyAlternativeBuffer, BufferEntry
+from experiments.robot.capra.mining.buffer import SafetyAlternativeBuffer, BufferEntry
 
 
 # ---------------------------------------------------------------------------

@@ -51,28 +51,33 @@ openvla-oft/
     capra_state.json      Machine-readable phase state
     capra_plan.md         Original planning document
 
-  experiments/robot/capra/    All CAPRA library code
-    capra_config.py           CAPRAConfig dataclass
-    capra_loss.py             CAPRA KL loss
-    build_capra_dataset.py    Safety target distribution builder
-    equivalence.py            Task-equivalence set
-    footprint.py              3-component footprint
-    object_roles.py           Object role taxonomy
-    signals.py                StateSignals (poses, contacts, topple)
-    state_api.py              Re-export shim
-    snapshot.py               MuJoCo snapshot/restore
-    env_adapter.py            CAPRAEnvAdapter + procedural template hook
-    task_progress.py          Task progress estimators
-    candidate_actions.py      Candidate action samplers
-    buffer.py                 Mining cache reader
-    mining_cache.py           Disk-backed supervision cache
-    rollout.py                Short-horizon CF rollout helpers
-    precursor.py              PrecursorChain
-    metrics.py                SPIR, EAR, EpisodeMetrics, AggregateMetrics
-    report_utils.py           JSON / CSV / Markdown writers
-    run_capra_mining.py       Mining entry point
-    run_capra_eval.py         Eval entry point
-    procedural_splits.py      4 reset-time side-effect templates
+  experiments/robot/capra/    All CAPRA library code (organised into subpackages)
+    core/                     核心算法
+      capra_config.py         CAPRAConfig -- all hyperparameters
+      capra_loss.py           CAPRA KL loss
+      equivalence.py          Task-equivalence set E_t
+      footprint.py            3-component footprint F_t
+      signals.py              StateSignals (poses, contacts, topple)
+      state_api.py            Re-export shim for signals
+    scene/                    场景语义
+      object_roles.py         Object role taxonomy (TARGET/PROTECTED/NON_TARGET)
+      task_progress.py        Task progress estimators
+      precursor.py            PrecursorChain and attribution
+      build_capra_dataset.py  Safety target distribution builder
+    mining/                   离线挖掘
+      run_capra_mining.py     Mining entry point (CLI)
+      mining_cache.py         Disk-backed supervision cache
+      buffer.py               Training sample reader
+      rollout.py              Short-horizon CF rollout
+      candidate_actions.py    Candidate action samplers
+      snapshot.py             MuJoCo snapshot/restore
+      env_adapter.py          CAPRAEnvAdapter + procedural template hook
+    eval/                     评估与报告
+      run_capra_eval.py       Eval entry point (CLI)
+      metrics.py              SPIR, EAR, EpisodeMetrics, AggregateMetrics
+      report_utils.py         JSON / CSV / Markdown writers
+      procedural_splits.py    4 reset-time side-effect templates
+    *.py (shims)              Backward-compatibility re-export shims
 
   vla-scripts/
     finetune.py               Baseline training (unchanged)

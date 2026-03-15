@@ -14,7 +14,7 @@ from typing import Any, Dict, List
 import numpy as np
 import pytest
 
-from experiments.robot.capra.procedural_splits import (
+from experiments.robot.capra.eval.procedural_splits import (
     DEFAULT_CONFIGS,
     SideEffectTemplate,
     TEMPLATE_SUMMARY,
@@ -372,7 +372,7 @@ def test_build_role_map_non_target_template():
 # ===========================================================================
 
 def test_env_adapter_apply_template_no_sim():
-    from experiments.robot.capra.env_adapter import CAPRAEnvAdapter, EnvConfig
+    from experiments.robot.capra.mining.env_adapter import CAPRAEnvAdapter, EnvConfig
 
     class FakeRaw:
         pass  # no .sim
@@ -387,7 +387,7 @@ def test_env_adapter_apply_template_no_sim():
 
 
 def test_env_adapter_no_template_returns_none():
-    from experiments.robot.capra.env_adapter import CAPRAEnvAdapter, EnvConfig
+    from experiments.robot.capra.mining.env_adapter import CAPRAEnvAdapter, EnvConfig
 
     class FakeRaw: pass
     cfg     = EnvConfig(side_effect_template=None)

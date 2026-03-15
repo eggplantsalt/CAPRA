@@ -1,3 +1,20 @@
+# ===== CAPRA 微调训练入口 (finetune_capra.py) =====
+# 支持两种模式（--capra_enabled False/True）：
+#
+# Baseline 模式（capra_enabled=False）：
+#   与 finetune.py 完全等价，零 CAPRA 开销，用于建立公平对比基线
+#
+# CAPRA 模式（capra_enabled=True）：
+#   L = L_anchor + lambda * sum_t w_t * KL(q_hat_t || pi_theta_t)
+#   需要先运行 mine_capra.sh 产出 cache_root 下的挖掘缓存
+#
+# 关键参数：
+#   --shuffle_buffer_size 2000   ⚠️ 必须 <=2000，否则 TF RLDS OOM
+#   --capra_warmup_steps 500     预热阶段只跑 anchor loss
+#   --lam 0.1                    CAPRA 损失权重
+#
+# WandB 指标：loss_value, anchor_loss, capra_loss, activation_ratio, mean_delta_t
+
 """finetune_capra.py -- CAPRA fine-tuning entry point for OpenVLA-OFT.
 
 Total loss:
