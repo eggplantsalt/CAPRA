@@ -97,7 +97,55 @@ docs/
 
 ---
 
-## Phase 2 — Counterfactual Rollout Infrastructure (PENDING)
+## Phase 2 — Safety Signals, Footprint, Task Progress (COMPLETE)
+
+### Files implemented
+
+| File | Status | Notes |
+|---|---|---|
+| `experiments/robot/capra/object_roles.py` | COMPLETE | Heuristic + BDDL + manual assignment; weight overrides |
+| `experiments/robot/capra/signals.py` | COMPLETE | Full signal readers: poses (EXACT), contacts (APPROX), topple, support, workspace |
+| `experiments/robot/capra/state_api.py` | COMPLETE | Re-exports signals.py; preserves existing import paths |
+| `experiments/robot/capra/footprint.py` | COMPLETE | 3-component decomposition: displacement + impulse + irreversible |
+| `experiments/robot/capra/task_progress.py` | COMPLETE | Pluggable ProgressFn; libero_info (EXACT) + proxy fallbacks |
+| `tests/capra/test_footprint.py` | COMPLETE | 20+ cases; all three components independently triggered; decoupling proven |
+| `tests/capra/test_state_api.py` | COMPLETE | Pose parsing, topple, support, workspace, no-env path |
+
+### Footprint decomposition (exact)
+
+```
+F_t(a) = alpha_d * D_t  +  alpha_i * I_t  +  alpha_r * R_t
+
+D_t  sum_{o in PROTECTED+NON_TARGET} w(o) * ||pos_after - pos_before||
+     Signal: obs[{name}_pos]  -- EXACT
+
+I_t  sum_{o in PROTECTED} w(o) * contact_force(o)
+     Signal: sim.data.cfrc_ext  -- APPROX (force proxy, not true impulse)
+
+R_t  topple_count * w_topple
+   + support_break_count * w_support_break
+   + workspace_violation_count * w_workspace
+     Signal: quaternion tilt threshold + geometry stacking -- APPROX
+```
+
+### Signal fidelity summary
+
+| Signal | Source | Exact/Approx |
+|---|---|---|
+| Object positions | obs dict `*_pos` keys | EXACT |
+| Object orientations | obs dict `*_quat` keys | EXACT |
+| Contact impulse | `sim.data.cfrc_ext` | APPROX |
+| Topple | quaternion angle change threshold | APPROX |
+| Support relations | relative height + xy distance | APPROX |
+| Workspace violation | position vs. configurable bounds | EXACT |
+
+### Example log output format
+
+```
+FootprintComponents(disp=0.0523m impulse=0.0000N irrev=1.0 [topple=1 supp_brk=0 ws_viol=0] top_disp=[cup:0.052 plate:0.000])
+```
+
+## Phase 3 — Snapshot + Counterfactual Rollout Infrastructure (PENDING)
 
 ### Blockers to resolve first
 

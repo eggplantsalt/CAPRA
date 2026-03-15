@@ -1,6 +1,6 @@
 {
-  "phase": 1,
-  "phase_name": "Codebase Reconnaissance + Scaffold",
+  "phase": 2,
+  "phase_name": "Safety Signals, Footprint, Task Progress",
   "status": "complete",
   "date_completed": "2026-03-15",
 
@@ -21,7 +21,19 @@
     "prismatic/extern/hf/modeling_prismatic.py"
   ],
 
-  "files_created": [
+  "files_updated_phase2": [
+    "experiments/robot/capra/object_roles.py",
+    "experiments/robot/capra/signals.py",
+    "experiments/robot/capra/state_api.py",
+    "experiments/robot/capra/footprint.py",
+    "experiments/robot/capra/task_progress.py",
+    "tests/capra/test_footprint.py",
+    "tests/capra/test_state_api.py",
+    "docs/progress_capra.md",
+    "docs/capra_state.json"
+  ],
+
+  "files_created_phase1": [
     "experiments/robot/capra/__init__.py",
     "experiments/robot/capra/capra_config.py",
     "experiments/robot/capra/env_adapter.py",
@@ -59,7 +71,7 @@
     "docs/capra_state.json"
   ],
 
-  "files_modified": [],
+  "files_modified_baseline": [],
 
   "confirmed_entry_points": {
     "training_baseline":   "vla-scripts/finetune.py::finetune",
@@ -78,18 +90,25 @@
     "default_action_mode": "L1_regression_continuous"
   },
 
-  "phase2_blockers": [
-    "Confirm LIBERO OffScreenRenderEnv MuJoCo state round-trip API",
-    "Confirm contact/impulse readout from MuJoCo version in LIBERO",
-    "Confirm BDDL predicate checker for task progress signal"
+  "phase2_signal_fidelity": {
+    "object_positions":    "EXACT -- obs dict *_pos keys",
+    "object_orientations": "EXACT -- obs dict *_quat keys",
+    "contact_impulse":     "APPROX -- sim.data.cfrc_ext force proxy",
+    "topple_detection":    "APPROX -- quaternion angle change threshold",
+    "support_relations":   "APPROX -- relative height + xy distance",
+    "workspace_violation": "EXACT -- position vs configurable bounds"
+  },
+
+  "phase3_blockers": [
+    "Confirm LIBERO OffScreenRenderEnv sim.get_state() / sim.set_state() API at runtime",
+    "Confirm MuJoCo version bundled with LIBERO supports full state round-trip"
   ],
 
-  "phase2_first_tasks": [
-    "snapshot.save_snapshot / restore_snapshot",
-    "state_api.read_state_signals",
-    "rollout.short_cf_rollout",
-    "task_progress.libero_stage_progress",
-    "signals.aggregate_footprint_components",
-    "run_capra_mining.py mining loop"
+  "phase3_first_tasks": [
+    "snapshot.save_snapshot / restore_snapshot (MuJoCo state round-trip)",
+    "rollout.short_cf_rollout (H_s step loop from snapshot)",
+    "candidate_actions.sample_k_action_chunks (stochastic VLA forward passes)",
+    "run_capra_mining.py main mining loop",
+    "mining_cache.save_episode_cache / load_episode_cache"
   ]
 }
