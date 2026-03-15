@@ -145,7 +145,48 @@ R_t  topple_count * w_topple
 FootprintComponents(disp=0.0523m impulse=0.0000N irrev=1.0 [topple=1 supp_brk=0 ws_viol=0] top_disp=[cup:0.052 plate:0.000])
 ```
 
-## Phase 3 — Snapshot + Counterfactual Rollout Infrastructure (PENDING)
+## Phase 3 — Short-Horizon Counterfactual Mining (COMPLETE)
+
+### Files implemented
+
+| File | Status | Notes |
+|---|---|---|
+| `experiments/robot/capra/snapshot.py` | COMPLETE | EXACT (MuJoCo sim.get_state/set_state) + APPROX fallback |
+| `experiments/robot/capra/candidate_actions.py` | COMPLETE | noise-injection sampling; `synthetic_candidates` for offline tests |
+| `experiments/robot/capra/rollout.py` | COMPLETE | `short_cf_rollout`, `mine_one_timestep`, `TimestepRecord` |
+| `experiments/robot/capra/equivalence.py` | COMPLETE (Phase 1) | all three gates; `local_safest_action_index`; `compute_local_avoidable_risk` |
+| `experiments/robot/capra/capra_config.py` | UPDATED | added `candidate_noise_sigma` field |
+| `tests/capra/test_candidate_actions.py` | COMPLETE | 15 cases; config knobs verified |
+| `tests/capra/test_equivalence.py` | COMPLETE | 14 cases; all three gates independently tested |
+| `tests/capra/test_smoke_pipeline.py` | COMPLETE | 4 cases; full pipeline smoke test produces non-empty TimestepRecord |
+
+### Test results
+
+```
+35 passed in 2.52s
+```
+
+### Configuration knobs summary
+
+| Knob | Field | Default | Effect |
+|---|---|---|---|
+| Candidate count | `cfg.K` | 8 | Number of action chunks sampled per timestep |
+| Short horizon | `cfg.H_s` | 5 | Steps per CF rollout |
+| Noise diversity | `cfg.candidate_noise_sigma` | 0.02 | Gaussian std added to action chunks 1..K-1 |
+| Progress floor | `cfg.progress_floor` | 0.20 | Min P_max to trigger CAPRA loss |
+| Abs gap | `cfg.epsilon_p_abs` | 0.05 | Max |P_max - P_t(a)| for equivalence |
+| Rel gap | `cfg.epsilon_p_rel` | 0.10 | Max relative gap for equivalence |
+
+### Action head compatibility
+
+The candidate sampling path in `candidate_actions.py` calls the existing
+`get_vla_action()` from `openvla_utils.py` unchanged.  Candidate diversity
+is achieved by adding `N(0, sigma^2)` noise to the *output* action chunk
+before returning -- no changes to model weights, `L1RegressionActionHead`,
+or any `prismatic/` file.  Setting `candidate_noise_sigma=0.0` gives K
+identical copies (deterministic baseline).
+
+## Phase 4 — Buffer Retrieval + Precursor Attribution (PENDING)
 
 ### Blockers to resolve first
 

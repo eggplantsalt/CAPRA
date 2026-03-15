@@ -24,6 +24,7 @@ class CAPRAConfig:
     # ------------------------------------------------- rollout / mining params
     K: int = 8                  # number of candidate action chunks to sample
     H_s: int = 5                # short counterfactual horizon (steps)
+    candidate_noise_sigma: float = 0.02  # std of noise added to action chunks for diversity
     W: int = 10                 # precursor attribution lookback window
     num_mining_episodes: int = 50  # episodes to mine per dataset split
 

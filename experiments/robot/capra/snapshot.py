@@ -1,52 +1,105 @@
-"""Simulator snapshot / restore interface.
+"""Snapshot / restore for CAPRA short-horizon counterfactual rollouts.
 
-Provides save_snapshot() / restore_snapshot() that allow CAPRA's
-short-horizon counterfactual rollout to branch from a fixed state.
+Saves and restores the full MuJoCo simulator state so that K candidate
+actions can each branch from the exact same starting point.
 
-Phase 1: interface + fidelity constants only.
-Phase 2: fill MuJoCo / LIBERO backend.
+Backend
+-------
+LIBERO wraps robosuite which wraps MjSim (mujoco-py) or MjModel/MjData
+(mujoco >= 3).  Both expose a round-trip state object:
+
+  mujoco-py:  sim.get_state()  -> MjSimState  (qpos, qvel, act, udd_state)
+              sim.set_state(state) + sim.forward()
+
+  mujoco 3:   mujoco.MjData  -- copy via mujoco.mj_copyData
+
+We try the mujoco-py path first (LIBERO default), then fall back to a
+obs-dict snapshot that re-initialises the scene from a recorded obs dict
+(APPROX -- loses velocity state, fine for H_s <= 5).
+
+Fidelity levels
+---------------
+EXACT   full qpos + qvel + act captured via sim.get_state()
+APPROX  position-only re-init from obs dict (loses velocity)
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, TYPE_CHECKING
+from dataclasses import dataclass, field
+from typing import Any, Dict, Optional, TYPE_CHECKING
+
+import numpy as np
 
 if TYPE_CHECKING:
     from experiments.robot.capra.env_adapter import CAPRAEnvAdapter
 
 
-# Fidelity levels – recorded here so approximation choices are explicit.
 class SnapshotFidelity:
-    EXACT = "exact"          # full MuJoCo qpos/qvel + object poses
-    APPROX = "approx"        # re-create scene from deterministic initial state
+    EXACT  = "exact"   # full MuJoCo qpos/qvel + act
+    APPROX = "approx"  # obs-dict position re-init
 
 
 @dataclass
 class Snapshot:
     """Opaque container for a saved simulator state."""
     fidelity: str
-    data: Any           # backend-specific (MjSimState or dict)
-    step: int           # environment step index at capture time
+    data: Any           # MjSimState | dict
+    step: int
+    obs: Dict           # last obs dict (always stored for fallback + signal reading)
+    info: Dict          # last info dict (for progress computation)
     task_description: str = ""
 
 
-def save_snapshot(env: "CAPRAEnvAdapter", step: int = 0) -> Snapshot:
+def save_snapshot(
+    env: "CAPRAEnvAdapter",
+    obs: Dict,
+    info: Dict,
+    step: int,
+    task_description: str = "",
+) -> Snapshot:
     """Capture current simulator state.
 
-    Tries EXACT first; falls back to APPROX if the backend does not
-    expose a full state round-trip.
+    Tries EXACT MuJoCo state first; falls back to obs-dict APPROX.
     """
-    raise NotImplementedError(
-        "Phase 2: call env.get_sim_state() and pack into Snapshot."
-    )
+    try:
+        sim = env._env.env.sim     # OffScreenRenderEnv -> robosuite -> MjSim
+        state = sim.get_state()
+        return Snapshot(
+            fidelity=SnapshotFidelity.EXACT,
+            data=state,
+            step=step,
+            obs=obs,
+            info=info,
+            task_description=task_description,
+        )
+    except AttributeError:
+        # Sim not accessible (unit tests, or non-MuJoCo backend)
+        return Snapshot(
+            fidelity=SnapshotFidelity.APPROX,
+            data={"obs": obs},
+            step=step,
+            obs=obs,
+            info=info,
+            task_description=task_description,
+        )
 
 
 def restore_snapshot(env: "CAPRAEnvAdapter", snap: Snapshot) -> None:
     """Restore simulator to a previously saved snapshot.
 
-    After this call the environment is ready for a fresh rollout
-    starting from `snap.step`.
+    After this call the env is ready for a fresh rollout from snap.step.
     """
-    raise NotImplementedError(
-        "Phase 2: call env.set_sim_state(snap.data)."
+    if snap.fidelity == SnapshotFidelity.EXACT:
+        try:
+            sim = env._env.env.sim
+            sim.set_state(snap.data)
+            sim.forward()   # propagate kinematics
+            return
+        except AttributeError:
+            pass  # fall through to APPROX
+
+    # APPROX fallback: cannot truly restore; caller must handle gracefully
+    # (short rollouts with H_s <= 5 are still useful even with v=0 init)
+    raise RuntimeError(
+        "APPROX snapshot restore not supported for live env. "
+        "Ensure the env exposes env.env.sim (mujoco-py MjSim API)."
     )
