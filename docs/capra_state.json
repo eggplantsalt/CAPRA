@@ -1,0 +1,95 @@
+{
+  "phase": 1,
+  "phase_name": "Codebase Reconnaissance + Scaffold",
+  "status": "complete",
+  "date_completed": "2026-03-15",
+
+  "files_read": [
+    "docs/CAPRA.md",
+    "docs/CONTEXT.md",
+    "README.md",
+    "LIBERO.md",
+    "vla-scripts/finetune.py",
+    "vla-scripts/deploy.py",
+    "experiments/robot/openvla_utils.py",
+    "experiments/robot/robot_utils.py",
+    "experiments/robot/libero/run_libero_eval.py",
+    "experiments/robot/libero/libero_utils.py",
+    "prismatic/models/action_heads.py",
+    "prismatic/training/train_utils.py",
+    "prismatic/vla/constants.py",
+    "prismatic/extern/hf/modeling_prismatic.py"
+  ],
+
+  "files_created": [
+    "experiments/robot/capra/__init__.py",
+    "experiments/robot/capra/capra_config.py",
+    "experiments/robot/capra/env_adapter.py",
+    "experiments/robot/capra/snapshot.py",
+    "experiments/robot/capra/state_api.py",
+    "experiments/robot/capra/object_roles.py",
+    "experiments/robot/capra/task_progress.py",
+    "experiments/robot/capra/signals.py",
+    "experiments/robot/capra/footprint.py",
+    "experiments/robot/capra/equivalence.py",
+    "experiments/robot/capra/candidate_actions.py",
+    "experiments/robot/capra/buffer.py",
+    "experiments/robot/capra/rollout.py",
+    "experiments/robot/capra/precursor.py",
+    "experiments/robot/capra/mining_cache.py",
+    "experiments/robot/capra/build_capra_dataset.py",
+    "experiments/robot/capra/metrics.py",
+    "experiments/robot/capra/procedural_splits.py",
+    "experiments/robot/capra/run_capra_mining.py",
+    "experiments/robot/capra/run_capra_eval.py",
+    "experiments/robot/capra/report_utils.py",
+    "vla-scripts/finetune_capra.py",
+    "tests/capra/__init__.py",
+    "tests/capra/test_equivalence.py",
+    "tests/capra/test_metrics.py",
+    "tests/capra/test_footprint.py",
+    "tests/capra/test_precursor.py",
+    "tests/capra/test_smoke_pipeline.py",
+    "scripts/capra/mine_capra.sh",
+    "scripts/capra/train_capra.sh",
+    "scripts/capra/eval_capra.sh",
+    "scripts/capra/smoke_capra.sh",
+    "docs/progress_capra.md",
+    "docs/capra_plan.md",
+    "docs/capra_state.json"
+  ],
+
+  "files_modified": [],
+
+  "confirmed_entry_points": {
+    "training_baseline":   "vla-scripts/finetune.py::finetune",
+    "training_capra":      "vla-scripts/finetune_capra.py::finetune_capra",
+    "eval_baseline":       "experiments/robot/libero/run_libero_eval.py::eval_libero",
+    "eval_capra":          "experiments/robot/capra/run_capra_eval.py::run_capra_eval",
+    "mining":              "experiments/robot/capra/run_capra_mining.py::run_mining",
+    "action_generation":   "experiments/robot/openvla_utils.py::get_vla_action",
+    "action_head_forward": "prismatic/models/action_heads.py::L1RegressionActionHead.predict_action"
+  },
+
+  "key_constants": {
+    "NUM_ACTIONS_CHUNK": 8,
+    "ACTION_DIM": 7,
+    "PROPRIO_DIM": 8,
+    "default_action_mode": "L1_regression_continuous"
+  },
+
+  "phase2_blockers": [
+    "Confirm LIBERO OffScreenRenderEnv MuJoCo state round-trip API",
+    "Confirm contact/impulse readout from MuJoCo version in LIBERO",
+    "Confirm BDDL predicate checker for task progress signal"
+  ],
+
+  "phase2_first_tasks": [
+    "snapshot.save_snapshot / restore_snapshot",
+    "state_api.read_state_signals",
+    "rollout.short_cf_rollout",
+    "task_progress.libero_stage_progress",
+    "signals.aggregate_footprint_components",
+    "run_capra_mining.py mining loop"
+  ]
+}
