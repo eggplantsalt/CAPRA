@@ -245,7 +245,77 @@ Value: action_chunk (chunk_len, action_dim)
 4. A crash between two episodes loses at most one episode of work.
 5. `build_full_dataset` re-reads the full cache directory and rebuilds the merged dataset -- safe to re-run at any time.
 
-## Phase 5 — Precursor Attribution (PENDING)
+## Phase 5 — Precursor Attribution (COMPLETE)
+
+### Files implemented / updated
+
+| File | Status | Notes |
+|---|---|---|
+| `experiments/robot/capra/precursor.py` | COMPLETE | `PrecursorEntry`, `PrecursorChain`, `precursor_loss_weight`, `measure_downstream_hazard`, `compute_precursor_chain_from_footprints` (env-free), `compute_precursor_chain` (env-based) |
+| `experiments/robot/capra/metrics.py` | UPDATED | Added `compute_precursor_lead_time` |
+| `experiments/robot/capra/capra_config.py` | UPDATED | Added `attribution_max_steps`, `attribution_max_replacements`, `attribution_rollout_len`, `attribution_hazard_threshold` |
+| `tests/capra/test_precursor.py` | COMPLETE | 43 tests: loss weight, chain helpers, measure_downstream_hazard, toy chain case, lead-time case, EditGain, LeadTime, integration pipeline |
+
+### Test results
+
+```
+138 passed in 0.40s  (full suite, zero regressions)
+```
+
+### Precursor attribution pseudo-code
+
+```
+Input: window W of (snapshot, action, F_t, TimestepRecord) tuples
+       anchor_step T where F_T >= hazard_threshold
+
+Precompute suffix_hazard[i] = sum(F[i:])
+Sort steps by descending F_t (budget: attribution_max_steps)
+
+For each step i in sorted order:
+    candidates = safest task-equiv replacements from TimestepRecord[i].E_t
+                 sorted ascending by F_t, take top attribution_max_replacements
+    For each replacement r:
+        restore snapshot[i]
+        execute r for attribution_rollout_len steps
+        replay original actions[i+1:] for remaining steps
+        h_after = sum(F) over all executed steps
+    delta_hazard[i] = max(0, suffix_hazard[i] - min(h_after))
+
+R_t'[i] = delta_hazard[i] / (sum_all_deltas + eps)  [normalised to sum=1]
+w_t = Delta_t * (1 + rho * R_t)
+```
+
+### Budget configuration
+
+| Field | Default | Controls |
+|---|---|---|
+| `W` | 10 | Lookback window length |
+| `attribution_max_steps` | 10 | Max steps scanned per trajectory |
+| `attribution_max_replacements` | 4 | Max candidates tried per step |
+| `attribution_rollout_len` | 8 | Steps per replacement rollout |
+| `attribution_hazard_threshold` | 0.10 | Min F_t to trigger attribution |
+
+### How computation explosion is avoided
+
+1. `attribution_max_steps` hard-caps outer loop.
+2. `attribution_max_replacements` hard-caps inner loop.
+3. Steps are sorted by descending `F_t` -- budget is spent on most dangerous steps first.
+4. `attribution_rollout_len` is separate from and shorter than `H_s`.
+5. Attribution is an offline mining pass -- never runs at training or eval time.
+
+### Toy test results
+
+**Toy chain case** (W=5, anchor=10):
+- True precursor at step 8: original F=0.80, replacement F=0.10 → delta=0.70, R_t=0.93
+- Random step at step 7: original F=0.30, replacement F=0.25 → delta=0.05, R_t=0.07
+- Result: score_true (0.93) >> score_random (0.07) ✓
+
+**Lead-time case** (W=8, anchor=20):
+- True precursor at step 14: 6 steps before terminal hazard
+- lead_time = 20 - 14 = 6 >= 4 ✓
+- Top precursor step (14) < anchor step (20) ✓
+
+## Phase 6 — Eval Loop + Reporting (PENDING)
 
 ### Blockers to resolve first
 

@@ -92,8 +92,34 @@ def compute_attribution_edit_gain(
     """Fractional hazard reduction from applying the top precursor replacement.
 
     EditGain = (hazard_before - hazard_after) / (hazard_before + 1e-8)
+
+    Returns value in (-inf, 1].  Positive = hazard reduced.
+    Zero or negative = replacement made no improvement (or made things worse).
     """
     return (hazard_before - hazard_after) / (hazard_before + 1e-8)
+
+
+def compute_precursor_lead_time(
+    anchor_step: int,
+    top_precursor_step: int,
+) -> int:
+    """PrecursorLeadTime: steps between top precursor and terminal hazard.
+
+    lead_time = anchor_step - top_precursor_step
+
+    A positive lead_time means the top precursor occurred *before* the
+    terminal hazard -- i.e. early warning is possible.
+    A value of 0 means the precursor is the hazard step itself.
+    A negative value indicates a data error (precursor after hazard).
+
+    Args:
+        anchor_step:       step index of the terminal hazard.
+        top_precursor_step: step index of the entry with highest R_t.
+
+    Returns:
+        int lead time in steps.
+    """
+    return anchor_step - top_precursor_step
 
 
 def aggregate_episode_metrics(episodes: List[EpisodeMetrics]) -> AggregateMetrics:

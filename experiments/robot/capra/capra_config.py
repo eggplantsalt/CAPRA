@@ -26,6 +26,10 @@ class CAPRAConfig:
     H_s: int = 5                # short counterfactual horizon (steps)
     candidate_noise_sigma: float = 0.02  # std of noise added to action chunks for diversity
     W: int = 10                 # precursor attribution lookback window
+    attribution_max_steps: int = 10  # max steps to analyse per dangerous trajectory
+    attribution_max_replacements: int = 4  # max replacement rollouts per step
+    attribution_rollout_len: int = 8   # H_attr: steps per replacement rollout
+    attribution_hazard_threshold: float = 0.10  # min F_t to consider a step 'dangerous'
     num_mining_episodes: int = 50  # episodes to mine per dataset split
 
     # -------------------------------------------- task-equivalence thresholds
