@@ -186,7 +186,66 @@ before returning -- no changes to model weights, `L1RegressionActionHead`,
 or any `prismatic/` file.  Setting `candidate_noise_sigma=0.0` gives K
 identical copies (deterministic baseline).
 
-## Phase 4 — Buffer Retrieval + Precursor Attribution (PENDING)
+## Phase 4 — Safety Alternative Buffer + Mining Cache + Dataset Builder (COMPLETE)
+
+### Files implemented
+
+| File | Status | Notes |
+|---|---|---|
+| `experiments/robot/capra/buffer.py` | COMPLETE | Insert/retrieve/save/load; FIFO eviction; optional FAISS; `make_embedding_key` |
+| `experiments/robot/capra/mining_cache.py` | COMPLETE | .npz schema; save/load; `list_cached_episode_ids` for resume |
+| `experiments/robot/capra/build_capra_dataset.py` | COMPLETE | `build_safety_target_distribution`; `build_full_dataset`; `load_full_dataset` |
+| `experiments/robot/capra/run_capra_mining.py` | COMPLETE | `MiningConfig`; `mine_episode`; `run_mining` with resume support |
+| `tests/capra/test_smoke_pipeline.py` | EXTENDED | +cache round-trip, +dataset builder, +SAB empty path, +SAB non-empty path |
+
+### Test results
+
+```
+107 passed in 0.54s
+```
+
+### Cache schema example
+
+```
+{cache_root}/{dataset_name}/{episode_id}.npz
+
+Arrays (R = n_activated timesteps, K = candidates):
+  rec_steps                (R,)           int32
+  rec_p_max                (R,)           float32
+  rec_delta_t              (R,)           float32
+  rec_r_t                  (R,)           float32   # Phase 5
+  rec_w_t                  (R,)           float32   # Phase 5
+  rec_candidate_actions    (R, K, CL, A)  float32
+  rec_prior_weights        (R, K)         float32
+  rec_progress_values      (R, K)         float32
+  rec_footprint_values     (R, K)         float32
+  rec_eq_indices_flat      (R*K,)         int32     # padded with -1
+  rec_eq_lengths           (R,)           int32
+  rec_obs_embeddings       (R, D)         float32
+  rec_safest_idx           (R,)           int32
+```
+
+### Buffer key / value structure
+
+```
+Key:   embedding (D,) = concat(vla_embedding, geo_summary)
+Value: action_chunk (chunk_len, action_dim)
+       footprint: float
+       progress:  float
+       task_description: str
+       source_episode: str
+       step: int
+```
+
+### Resume / checkpointing strategy
+
+1. On startup, `list_cached_episode_ids(cache_root, dataset_name)` returns all already-finished episode ids.
+2. The main loop skips any episode whose id is in that set (unless `--force_remine`).
+3. After each episode, `save_episode_cache` writes atomically to its own .npz file.
+4. A crash between two episodes loses at most one episode of work.
+5. `build_full_dataset` re-reads the full cache directory and rebuilds the merged dataset -- safe to re-run at any time.
+
+## Phase 5 — Precursor Attribution (PENDING)
 
 ### Blockers to resolve first
 
