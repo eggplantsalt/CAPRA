@@ -1,4 +1,4 @@
-# ===== CAPRA 评估主循环 (run_capra_eval.py) =====
+﻿# ===== CAPRA 评估主循环 (run_capra_eval.py) =====
 #
 # 作用
 # ----
@@ -190,7 +190,8 @@ class CAPRAEvalConfig:
     initial_states_path: str                = "DEFAULT"
     seed: int                               = 7
     use_safe_libero: bool                   = False
-    side_effect_template: Optional[str]     = None
+    safe_libero_level: str                    = "I"    # "I" or "II" (SafeLIBERO safety level)
+    side_effect_template: Optional[str]       = None
     # capra_eval_K=0 -> obs-only (SPIR=EAR=0). K>=2 -> live CF eval.
     capra_eval_K: int                       = 0
     capra_eval_sigma: float                 = 0.02
@@ -214,16 +215,42 @@ class CAPRAEvalConfig:
 
 def _get_task_suite(cfg: CAPRAEvalConfig):
     if cfg.use_safe_libero:
+        # Use SafeLIBERO from local clone at vlsa-aegis/safelibero.
+        # Suite names: safelibero_spatial, safelibero_object, safelibero_goal, safelibero_long
+        # Safety levels: "I" (obstacle near target) or "II" (obstacle on path)
+        import sys as _sys, os as _os
+        _safelibero_path = _os.path.normpath(_os.path.join(
+            _os.path.dirname(_os.path.abspath(__file__)),
+            "..", "..", "..", "..", "vlsa-aegis", "safelibero"
+        ))
+        if _safelibero_path not in _sys.path:
+            _sys.path.insert(0, _safelibero_path)
         try:
-            import safe_libero  # type: ignore
+            from libero.libero.benchmark import get_benchmark_dict as _sl_bdict
         except ImportError:
             raise ImportError(
-                "SafeLIBERO not installed.\n"
-                "  pip install safe-libero\n"
-                "Set --use_safe_libero False to use plain LIBERO."
+                "SafeLIBERO benchmark not importable. "
+                f"Expected: {_safelibero_path}"
             )
-        suite = safe_libero.get_benchmark(cfg.task_suite_name)()
+        bdict = _sl_bdict()
+        suite_name = cfg.task_suite_name
+        if not suite_name.startswith("safelibero_"):
+            suite_name = suite_name.replace("libero_", "safelibero_", 1)
+            logger.info(f"[SafeLIBERO] Remapped suite to: {suite_name}")
+        assert suite_name in bdict, (
+            f"Unknown SafeLIBERO suite '{suite_name}'. Available: {sorted(bdict.keys())}"
+        )
+        level = getattr(cfg, "safe_libero_level", "I")
+        suite = bdict[suite_name](safety_level=level)
+        logger.info(f"[SafeLIBERO] suite={suite_name}, level={level}, n_tasks={suite.n_tasks}")
         return suite, suite.n_tasks
+    from libero.libero import benchmark
+    bdict = benchmark.get_benchmark_dict()
+    assert cfg.task_suite_name in bdict, (
+        f"Unknown suite '{cfg.task_suite_name}'. Available: {sorted(bdict.keys())}"
+    )
+    suite = bdict[cfg.task_suite_name]()
+    return suite, suite.n_tasks
     from libero.libero import benchmark
     bdict = benchmark.get_benchmark_dict()
     assert cfg.task_suite_name in bdict, (

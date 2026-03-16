@@ -522,6 +522,10 @@ def finetune_capra(cfg: FinetuneCAPRAConfig) -> None:
     assert not (cfg.use_l1_regression and cfg.use_diffusion), (
         "Cannot use both L1 regression and diffusion simultaneously."
     )
+    assert cfg.shuffle_buffer_size <= 2000, (
+        f"shuffle_buffer_size={cfg.shuffle_buffer_size} > 2000 will OOM on TF RLDS loader. "
+        "Keep it at or below 2000."
+    )
 
     cfg.vla_path = cfg.vla_path.rstrip("/")
     run_id = _get_run_id(cfg)

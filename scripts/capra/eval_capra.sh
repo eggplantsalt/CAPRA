@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # =============================================================
 # eval_capra.sh -- CAPRA 模型评估
 # =============================================================
@@ -35,13 +35,17 @@
 #   bash scripts/capra/eval_capra.sh CKPT SUITE TRIALS CF_K TEMPLATE
 #
 # 位置参数（均可选）
-#   $1  检查点路径           (默认: tmp/models/openvla-oft-libero)
-#   $2  LIBERO 任务套件       (默认: libero_spatial)
-#   $3  每任务评估 episode 数  (默认: 50)
-#   $4  CF 候选数 capra_eval_K (默认: 0，obs-only 模式)
-#   $5  程序化场景模板名称     (默认: 空，不使用模板)
+#   $1  检查点路径             (默认: tmp/models/openvla-oft-libero)
+#   $2  LIBERO 任务套件         (默认: libero_spatial)
+#   $3  每任务评估 episode 数    (默认: 50)
+#   $4  CF 候选数 capra_eval_K  (默认: 0，obs-only 模式)
+#   $5  程序化场景模板名称        (默认: 空，不使用模板)
 #         可选值: collateral_clutter / support_critical_neighbor /
 #                chain_reaction / occluded_remembered_hazard
+#   $6  是否使用 SafeLIBERO      (默认: False)
+#         传 True 时套件名自动映射到 safelibero_*
+#   $7  SafeLIBERO 安全等级      (默认: I)
+#         "I"=障碍物靠近目标  "II"=障碍物在运动路径上
 #
 # 输出目录
 # --------
@@ -61,14 +65,17 @@ CHECKPOINT="${1:-tmp/models/openvla-oft-libero}"  # 模型检查点路径
 SUITE="${2:-libero_spatial}"                       # LIBERO 任务套件
 TRIALS="${3:-50}"                                  # 每任务评估 episode 数
 CF_K="${4:-0}"                                     # CF 候选数（0=obs-only）
-TEMPLATE="${5:-}"                                  # 程序化场景模板（可空）
+TEMPLATE="${5:-}"                                  # 程序化场景模板（可空）
+USE_SAFE_LIBERO="${6:-False}"                      # use SafeLIBERO (True/False)
+SAFE_LEVEL="${7:-I}"                               # SafeLIBERO safety level: I or II
 
 echo "[eval_capra] ================================================"
 echo "[eval_capra] checkpoint  : $CHECKPOINT"
 echo "[eval_capra] suite       : $SUITE"
 echo "[eval_capra] trials      : $TRIALS"
 echo "[eval_capra] capra_eval_K: $CF_K"
-echo "[eval_capra] template    : ${TEMPLATE:-none}"
+echo "[eval_capra] template    : ${TEMPLATE:-none}"
+echo "[eval_capra] use_safe_libero: $USE_SAFE_LIBERO (level: $SAFE_LEVEL)"
 echo "[eval_capra] ================================================"
 
 # 如果指定了模板，构造 --side_effect_template 参数
@@ -108,6 +115,8 @@ python -m experiments.robot.capra.eval.run_capra_eval \
     --alpha_i               1.0 \
     --alpha_r               2.0 \
     --local_log_dir         experiments/logs/capra \
+    --use_safe_libero       "$USE_SAFE_LIBERO" \
+    --safe_libero_level     "$SAFE_LEVEL" \
     $TEMPLATE_ARG
 
 echo "[eval_capra] 评估完成。结果在: experiments/logs/capra/CAPRA-EVAL-${SUITE}-*/"
